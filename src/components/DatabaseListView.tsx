@@ -6,8 +6,11 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { DatabaseColorPicker } from "./DatabaseColorPicker";
 import {
   DatabaseActionButtons,
@@ -88,6 +91,8 @@ interface DatabaseListViewProps {
   actionHandlers: DatabaseActionHandlers;
   copiedDbId: string | null;
   onCopyId: (dbId: string, e: React.MouseEvent) => void;
+  hiddenDatabases: string[];
+  onToggleHide: (dbId: string) => void;
 }
 
 export function DatabaseListView({
@@ -101,6 +106,8 @@ export function DatabaseListView({
   actionHandlers,
   copiedDbId,
   onCopyId,
+  hiddenDatabases,
+  onToggleHide,
 }: DatabaseListViewProps): React.JSX.Element {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -326,11 +333,38 @@ export function DatabaseListView({
 
                 {/* Actions */}
                 <td className="px-3 py-2">
-                  <DatabaseActionButtons
-                    database={db}
-                    handlers={actionHandlers}
-                    compact
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleHide(db.uuid);
+                      }}
+                      aria-label={
+                        hiddenDatabases.includes(db.uuid)
+                          ? "Show database"
+                          : "Hide database"
+                      }
+                      title={
+                        hiddenDatabases.includes(db.uuid)
+                          ? "Show database"
+                          : "Hide database"
+                      }
+                    >
+                      {hiddenDatabases.includes(db.uuid) ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <DatabaseActionButtons
+                      database={db}
+                      handlers={actionHandlers}
+                      compact
+                    />
+                  </div>
                 </td>
               </tr>
             );

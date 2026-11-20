@@ -29,7 +29,7 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "METADATA"
 database_name = "d1-manager-metadata"
-database_id = "f762447a-db4a-449b-a70d-0c9d23324b89"
+database_id = "2104110f-452b-457c-9ef8-54e89a18f8eb"
 
 # R2 bucket for backups
 [[r2_buckets]]

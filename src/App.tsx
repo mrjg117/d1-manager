@@ -51,6 +51,8 @@ import {
   ExternalLink,
   Book,
   Activity,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -207,6 +209,34 @@ export default function App(): React.JSX.Element {
   const [showUndoHistory, setShowUndoHistory] = useState(false);
   const [undoCount, setUndoCount] = useState(0);
   const [undoCounts, setUndoCounts] = useState<Record<string, number>>({});
+
+  // Hidden databases - persisted to localStorage
+  const getStoredHiddenDatabases = (): string[] => {
+    try {
+      const stored = localStorage.getItem("d1-hidden-databases");
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch {
+      return [];
+    }
+  };
+  const [hiddenDatabases, setHiddenDatabases] = useState<string[]>(
+    getStoredHiddenDatabases,
+  );
+  const [showHiddenDatabases, setShowHiddenDatabases] = useState(false);
+
+  const toggleHideDatabase = (dbId: string): void => {
+    setHiddenDatabases((prev) => {
+      const next = prev.includes(dbId)
+        ? prev.filter((id) => id !== dbId)
+        : [...prev, dbId];
+      try {
+        localStorage.setItem("d1-hidden-databases", JSON.stringify(next));
+      } catch {
+        // localStorage not available
+      }
+      return next;
+    });
+  };
   const [r2BackupCounts, setR2BackupCounts] = useState<Record<string, number>>(
     {},
   );
@@ -612,10 +642,17 @@ export default function App(): React.JSX.Element {
     });
   };
 
-  // Filter databases by search query
-  const filteredDatabasesUnsorted = databases.filter((db) =>
-    db.name.toLowerCase().includes(databaseSearchQuery.toLowerCase()),
+  // Filter databases by search query and hidden state
+  const filteredDatabasesUnsorted = databases.filter(
+    (db) =>
+      db.name.toLowerCase().includes(databaseSearchQuery.toLowerCase()) &&
+      (showHiddenDatabases || !hiddenDatabases.includes(db.uuid)),
   );
+
+  // Count of hidden databases (for display)
+  const hiddenDatabasesCount = databases.filter((db) =>
+    hiddenDatabases.includes(db.uuid),
+  ).length;
 
   // Sort options for database grid view
   const databaseSortOptions: SortOption[] = [
@@ -1128,7 +1165,7 @@ export default function App(): React.JSX.Element {
       <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <a
-            href="https://d1.adamic.tech/"
+            href="#"
             className="flex items-center gap-3 group transition-opacity hover:opacity-80 no-underline"
           >
             <Database className="h-8 w-8 text-primary transition-transform group-hover:scale-110" />
@@ -1389,6 +1426,42 @@ export default function App(): React.JSX.Element {
                   totalCount={databases.length}
                 />
                 <div className="flex items-center gap-2">
+                  {hiddenDatabasesCount > 0 && (
+                    <Button
+                      variant={showHiddenDatabases ? "default" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        setShowHiddenDatabases(!showHiddenDatabases)
+                      }
+                      aria-label={
+                        showHiddenDatabases
+                          ? "Hide hidden databases"
+                          : "Show hidden databases"
+                      }
+                      title={
+                        showHiddenDatabases
+                          ? "Hide hidden databases"
+                          : `Show ${hiddenDatabasesCount} hidden database(s)`
+                      }
+                      className="flex items-center gap-2"
+                    >
+                      {showHiddenDatabases ? (
+                        <>
+                          <Eye className="h-4 w-4" />
+                          <span className="hidden sm:inline">
+                            Hidden ({hiddenDatabasesCount})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="h-4 w-4" />
+                          <span className="hidden sm:inline">
+                            Hidden ({hiddenDatabasesCount})
+                          </span>
+                        </>
+                      )}
+                    </Button>
+                  )}
                   {databaseViewMode === "grid" && (
                     <GridSortSelect
                       options={databaseSortOptions}
@@ -1625,6 +1698,8 @@ export default function App(): React.JSX.Element {
                       actionHandlers={actionHandlers}
                       copiedDbId={copiedDbId}
                       onCopyId={(dbId, e) => void copyDatabaseId(dbId, e)}
+                      hiddenDatabases={hiddenDatabases}
+                      onToggleHide={toggleHideDatabase}
                     />
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1664,6 +1739,31 @@ export default function App(): React.JSX.Element {
                               <div className="flex items-start justify-between">
                                 <Database className="h-8 w-8 text-primary" />
                                 <div className="flex items-center gap-1.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleHideDatabase(db.uuid);
+                                    }}
+                                    aria-label={
+                                      hiddenDatabases.includes(db.uuid)
+                                        ? "Show database"
+                                        : "Hide database"
+                                    }
+                                    title={
+                                      hiddenDatabases.includes(db.uuid)
+                                        ? "Show database"
+                                        : "Hide database"
+                                    }
+                                  >
+                                    {hiddenDatabases.includes(db.uuid) ? (
+                                      <Eye className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </Button>
                                   <DatabaseColorPicker
                                     value={databaseColors[db.uuid] ?? null}
                                     onChange={(color) =>
